@@ -314,7 +314,7 @@ async def get_name(message: types.Message):
             await bot.send_message(chat_id=message.chat.id, text=output)
             path = "output.txt"
             os.remove(path)
-        except IndexError:
+        except:
             await message.reply('Некоректный тикер! Повторите попытку!')
 
 @dp.message_handler(lambda message: message.text =="Риск акции")
