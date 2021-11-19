@@ -256,10 +256,10 @@ async def get_name(message: types.Message):
                 plt.ylabel('Цена закрытия')
                 plt.legend(loc='upper left')
                 plt.savefig('img5.jpg')
-                print('Цена за последние пять дней ' + stock + ' =', np.array(df['Close'][-5:][0]), '$;',
+                print('Цена за последние пять дней ' + stock + ' =\n', np.array(df['Close'][-5:][0]), '$;\n',
                       np.array(df['Close'][-5:][1]),
-                      '$;', np.array(df['Close'][-5:][2]), '$;', np.array(df['Close'][-5:][3]), '$;',
-                      np.array(df['Close'][-5:][4]), '$;', file=open("output.txt", "a"))
+                      '$;\n', np.array(df['Close'][-5:][2]), '$;\n', np.array(df['Close'][-5:][3]), '$;\n',
+                      np.array(df['Close'][-5:][4]), '$;\n', file=open("output.txt", "a"))
                 p_1 = abs(1 - df['Close'][-5:][1] / df['Close'][-5:][0])
                 if df['Close'][-5:][1] >= df['Close'][-5:][0]:
                     pp_1 = '+' + str(round(p_1 * 100, 2)) + '%'
@@ -385,7 +385,7 @@ async def get_name(message: types.Message):
         pRet, pStd = portfolioPerformance(weights, meanReturns, covMatrix, Time)
 
         InitialInvestment = 1000  # ПЕРЕМЕННАЯ
-        print('Ожидаемая доходность портфеля в пол года за 1000$: ', round(InitialInvestment * pRet, 2), '$',
+        print('Ожидаемая доходность портфеля в день за 1000$: ', round(InitialInvestment * pRet, 2), '$',
               file=open("risk.txt", "a"))
         print('Значение риска 95 CI: ', round(InitialInvestment * VaR, 2), '%', file=open("risk.txt", "a"))
         print('Условный 95CI: ', round(InitialInvestment * CVaR, 2), '%', file=open("risk.txt", "a"))
