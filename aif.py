@@ -23,8 +23,9 @@ from keras.layers import Dense, LSTM
 from pandas_datareader import data as pdr
 import re
 from aiogram.utils.markdown import *
-from aiogram.dispatcher import FSMContext
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+import time
+from fake_useragent import UserAgent
+from bs4 import BeautifulSoup
 
 plt.style.use('fivethirtyeight')
 # Объект бота
@@ -37,6 +38,22 @@ logging.basicConfig(level=logging.INFO)
 # Хэндлер на команду /test1
 @dp.message_handler(commands="start")
 async def cmd_test1(message: types.Message):
+    UserAgent().chrome
+    page_link = 'https://ru.investing.com/currencies/usd-rub'
+    response = requests.get(page_link, headers={'User-Agent': UserAgent().chrome})
+    response
+    html = response.content
+    soup = BeautifulSoup(html, 'html.parser')
+    pars = soup.find('span', class_='arial_26 inlineblock pid-2186-last').get_text()
+
+    UserAgent().chrome
+    page_link = 'https://ru.investing.com/currencies/eur-rub'
+    response1 = requests.get(page_link, headers={'User-Agent': UserAgent().chrome})
+    response1
+    html1 = response1.content
+    soup1 = BeautifulSoup(html1, 'html.parser')
+    pars1 = soup1.find('span', class_='arial_26 inlineblock pid-1691-last').get_text()
+
     keyboard = types.ReplyKeyboardMarkup()
     button_1 = types.KeyboardButton(text="Анализ акции")
     keyboard.add(button_1)
@@ -48,7 +65,11 @@ async def cmd_test1(message: types.Message):
     keyboard.add(button_4)
     button_5 = "Потенциальная акция"
     keyboard.add(button_5)
-    await message.answer("---🎉AFI Telegram Bot🎉---\nАналитика. \nВведите ТИКЕР (можно найти на investing.com)", reply_markup=keyboard)
+    button_6 = "Оптимизация портфеля"
+    keyboard.add(button_6)
+    button_7 = "Анализ портфеля"
+    keyboard.add(button_7)
+    await message.answer(f"---🎉AFI Telegram Bot🎉---\nАналитика и прогнозирование фондового рынка.\nКурс USD/RUB EUR/RUB: \n{pars} \n{pars1} \nВведите ТИКЕР (можно найти на investing.com) ", reply_markup=keyboard)
 
 
 @dp.message_handler(lambda message: message.text == "Инструкция")
@@ -61,6 +82,8 @@ async def get_name(message: types.Message):
     action = message.text
     if (action.isdigit() == False) and (action.isupper() == True):
         await message.answer('Тикер установлен')
+    else:
+        await message.reply('Некоректный тикер! Повторите попытку!')
 @dp.message_handler(lambda message: message.text =="Анализ акции")
 async def get_name(message: types.Message):
         try:
@@ -588,6 +611,199 @@ async def get_name(message: types.Message):
 
             good_stocks.append(stock)
             break
+    except:
+        await message.reply('Некоректный тикер! Повторите попытку!')
+
+@dp.message_handler(lambda message: message.text =="Оптимизация портфеля")
+async def get_name(message: types.Message):
+    await message.answer('Введите тикеры через пробел и отправьте сообщение "Выполнить".')
+
+
+@dp.message_handler(lambda message: message.text =="Выполнить")
+async def get_name(message: types.Message):
+    try:
+        lst = action.replace('.', '').split()
+        data = yf.download(lst, period='3mo')
+        closeData = data.Close
+        closeData
+        dCloseData = closeData.pct_change()
+        dCloseData
+        dohMean = dCloseData.mean()
+        dohMean
+        cov = dCloseData.cov()
+        cov
+        cnt = len(dCloseData.columns)
+
+        def randPortf():
+            res = np.exp(np.random.randn(cnt))
+            res = res / res.sum()
+            return res
+
+        r = randPortf()
+        print(r)
+        print(r.sum())
+
+        def dohPortf(r):
+            return np.matmul(dohMean.values, r)
+
+        r = randPortf()
+        print(r)
+        d = dohPortf(r)
+        print(d)
+
+        def riskPortf(r):
+            return np.sqrt(np.matmul(np.matmul(r, cov.values), r))
+
+        r = randPortf()
+        print(r)
+        rs = riskPortf(r)
+        print(rs)
+
+        N = 1000
+
+        risk = np.zeros(N)
+        doh = np.zeros(N)
+        portf = np.zeros((N, cnt))
+
+        for n in range(N):
+            r = randPortf()
+
+            portf[n, :] = r
+            risk[n] = riskPortf(r)
+            doh[n] = dohPortf(r)
+
+        min_risk = np.argmin(risk)
+
+        maxSharpKoef = np.argmax(doh / risk)
+
+        r_mean = np.ones(cnt) / cnt
+        risk_mean = riskPortf(r_mean)
+        doh_mean = dohPortf(r_mean)
+
+        import pandas as pd
+
+        print('---------- Минимальный риск ----------', file=open("out.txt", "a"))
+        print()
+        print("риск = %1.2f%%" % (float(risk[min_risk]) * 100.), file=open("out.txt", "a"))
+        print("доходность = %1.2f%%" % (float(doh[min_risk]) * 100.), file=open("out.txt", "a"))
+        print()
+        print(pd.DataFrame([portf[min_risk] * 100], columns=dCloseData.columns, index=['доли, %']).T,
+              file=open("out.txt", "a"))
+        print()
+
+        print('---------- Макс. коэфф. Шарпа ----------', file=open("out.txt", "a"))
+        print()
+        print("риск = %1.2f%%" % (float(risk[maxSharpKoef]) * 100.), file=open("out.txt", "a"))
+        print("доходность = %1.2f%%" % (float(doh[maxSharpKoef]) * 100.), file=open("out.txt", "a"))
+        print()
+        print(pd.DataFrame([portf[maxSharpKoef] * 100], columns=dCloseData.columns, index=['доли, %']).T,
+              file=open("out.txt", "a"))
+        print()
+
+        print('---------- Средний портфель ----------', file=open("out.txt", "a"))
+        print()
+        print("риск = %1.2f%%" % (float(risk_mean) * 100.), file=open("out.txt", "a"))
+        print("доходность = %1.2f%%" % (float(doh_mean) * 100.), file=open("out.txt", "a"))
+        print()
+        print(pd.DataFrame([r_mean * 100], columns=dCloseData.columns, index=['доли, %']).T, file=open("out.txt", "a"))
+        print()
+        with open('out.txt', 'r') as f:
+            out = f.read()
+        await bot.send_message(chat_id=message.chat.id, text=out)
+        path = "out.txt"
+        os.remove(path)
+    except:
+        await message.reply('Некоректный тикер! Повторите попытку!')
+
+@dp.message_handler(lambda message: message.text =="Анализ портфеля")
+async def get_name(message: types.Message):
+    await message.answer('Введите тикеры и кол-во купленных акций через пробел и отправьте сообщение "Анализ". Пример: "AAPL 3 OZON 5"')
+
+@dp.message_handler(lambda message: message.text =="Анализ")
+async def get_name(message: types.Message):
+    try:
+        await message.answer('Подождите немного!')
+        lst = action.replace('.', '').split()
+        f = {lst[i]: lst[i + 1] for i in range(0, len(lst), 2)}
+        q = list()
+        cen = list()
+        cen5 = list()
+        cen1 = list()
+        divlist = []
+        divlist1 = []
+        for key in f:
+            tickers = [key]
+            for ticker in tickers:
+                ticker_yahoo = yf.Ticker(ticker)
+                data = ticker_yahoo.history()
+                last_quote = (data.tail(1)['Close'].iloc[0])
+                price = ticker_yahoo.info.get("currentPrice") * int(f.get(key))
+                price = round(price, 2)
+                f[key] = price
+                naming = ticker_yahoo.info.get("shortName")
+                cen.append(key)
+                cen.append(str(ticker_yahoo.info.get("shortName")))
+
+                cen1.append(key)
+                cen1.append(ticker_yahoo.info.get("currentPrice"))
+
+                cen5.append(key)
+                cen5.append(str(price))
+
+                q.append(str(naming))
+                q.append(str(price))
+
+                divlist.append(key)
+                divlist.append(str(ticker_yahoo.info.get('lastDividendValue')))
+
+                divlist1.append(key)
+                divlist1.append(ticker_yahoo.info.get("shortName"))
+
+        cena5 = {cen5[i]: cen5[i + 1] for i in range(0, len(cen5), 2)}
+        cena1 = {cen1[i]: cen1[i + 1] for i in range(0, len(cen1), 2)}
+        cena = {cen[i]: cen[i + 1] for i in range(0, len(cen), 2)}
+        div = {divlist[i]: divlist[i + 1] for i in range(0, len(divlist), 2)}
+        div1 = {divlist1[i]: divlist1[i + 1] for i in range(0, len(divlist1), 2)}
+
+
+        print("Стоимость акции:", file=open("price1.txt", "a"))
+        for key in cena:
+            lis1 = list(cena.keys())
+            print(" " + cena.get(key) + " - " + str(cena1.get(key)) + "$", file=open("price1.txt", "a"))
+        print(" ", file=open("price1.txt", "a"))
+        print("Стоимость всех акций:", file=open("price2.txt", "a"))
+        for key in cena:
+            lis1 = list(cena.keys())
+            print(" " + cena.get(key) + " - " + str(cena5.get(key)) + "$", file=open("price2.txt", "a"))
+        print(" ", file=open("price2.txt", "a"))
+        print("Дивидентовый доход:", file=open("div.txt", "a"))
+        for key in div:
+            lis1 = list(div.keys())
+            print(" " + div1.get(key) + " - " + str(div.get(key)) + "$", file=open("div.txt", "a"))
+        lis_sum = list(cena5.values())
+        arr = np.array(lis_sum)
+        arr = arr.astype('float64')
+        print(" ", file=open("div.txt", "a"))
+        print("Стоимость портфеля:", file=open("price.txt", "a"))
+        print(" ", round(arr.sum(), 2), "$", file=open("price.txt", "a"))
+        with open('price1.txt', 'r') as f:
+                price1 = f.read()
+        with open('price2.txt', 'r') as f:
+                price2 = f.read()
+        with open('div.txt', 'r') as f:
+                div = f.read()
+        with open('price.txt', 'r') as f:
+                price = f.read()
+        output1 = "✅" + price1 + "✅" + price2 + "✅" + div + "✅" + price
+        await bot.send_message(chat_id=message.chat.id, text=output1)
+        path = "price1.txt"
+        os.remove(path)
+        path = "price2.txt"
+        os.remove(path)
+        path = "div.txt"
+        os.remove(path)
+        path = "price.txt"
+        os.remove(path)
     except:
         await message.reply('Некоректный тикер! Повторите попытку!')
 if __name__ == "__main__":
